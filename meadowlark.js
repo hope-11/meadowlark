@@ -4,13 +4,7 @@ var app=express();
 
 var handlebars=require('express3-handlebars').create({defaultLayout:'main'});
 
-var fortunes=[
-	"Conquer your fears or they will conquer you.",
-	"Rivers need springs.",
-	"Do not fear what you don't know.",
-	"You will have a pleasant surprise.",
-	"Whenever possible, keep it simple."
-];
+var fortune=require("./lib/fortune.js");
 
 app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
@@ -23,10 +17,7 @@ app.get('/', function(req, res){
 	res.render('home');
 });
 app.get('/about', function(req, res){
-	var random=Math.random();
-	var floor=Math.floor(random*fortunes.length)
-	var randomFortune=fortunes[floor];
-	res.render('about', {fortune: randomFortune, r:random, f:floor});
+	res.render('about', {fortune: fortune.getFortune()});
 });
 
 //定制404页面
