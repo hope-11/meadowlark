@@ -1,11 +1,33 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<meta charset="UTF-8">
 		<title>Meadowlark Travel</title>
+		<link href="http://apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+		{{{_sections.head}}}
+		{{#if showTests}}
+			<link rel="stylesheet" href="../../public/vendor/mocha.css">
+		{{/if}}
+		<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script src="http://apps.bdimg.com/libs/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 	</head>
 	<body>
 		<header><img src="/img/logo 22.png" alt="Meadowlark Travel Logo" width="100px"></header>
 		{{{body}}}
+		{{{_sections.jquery}}}
+		
+		{{#if showTests}}
+			<div id="mocha"></div>
+			<script src="/vendor/mocha.js"></script>
+			<script src="/vendor/chai.js"></script>
+			<script>
+				mocha.ui('tdd');
+				var assert=chai.assert;
+			</script>
+			<script src="/qa/tests-global.js"></script>
+			{{#if pageTestScript}}
+				<script src="{{pageTestScript}}"></script>
+			{{/if}}
+			<script>mocha.run();</script>
+		{{/if}}
 	</body>
 </html>
