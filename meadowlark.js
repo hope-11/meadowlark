@@ -101,6 +101,16 @@ app.post('/process', function(req, res){
 	console.log('Email (from visible form field): ' + req.body.email);
 	res.redirect(303, '/thank-you');
 })
+app.get('/newsletter2', function(req, res){
+	res.render('newsletter2', {csrf: 'CSRF token goes here'});
+});
+app.post('/process2', function(req, res){
+	if(req.xhr || req.accepts('json,html')==='json'){
+		res.send({success: true});
+	}else{
+		res.redirect(303, '/thank-you');
+	}
+});
 
 //定制404页面
 app.use(function(req, res, next){
