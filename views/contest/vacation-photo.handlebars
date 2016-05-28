@@ -1,7 +1,5 @@
-<h2>Sign up for our newsletter to receive news and specials!</h2>
-<form class="form-horizontal" role='form' 
-		action="/process?form=newsletter" method="post">
-	<input type="hidden" name="_csrf" value="{{csrf}}" />
+<form class="form-horizontal" role='form' enctype="multipart/form-data"
+		action="/contest/vacation-photo/{{year}}/{{month}}" method="post">
 	<div class="form-group">
 		<label for="filedName" class="col-sm-2 control-label">Name</label>
 		<div class="col-sm-4">
@@ -12,6 +10,13 @@
 		<label for="filedEmail" class="col-sm-2 control-label">Emai</label>
 		<div class="col-sm-4">
 			<input type="text" class="form-control" id="fieldEmail" name="email" />
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="fieldPHoto" class="col-sm-2 control-label">Vacation photo</label>
+		<div class="col-sm-4">
+			<input type="file" class="form-control" required accept="image/*"
+				id="fieldPhoto" name="photo" />
 		</div>
 	</div>
 	<div class="form-group">

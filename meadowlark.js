@@ -15,6 +15,8 @@ var handlebars=require('express3-handlebars').create({
 app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
 
+var formidable=require('formidable');
+var jqupload=require('jquery-file-upload-middleware');
 var fortune=require("./lib/fortune.js");
 
 function getWeatherData(){
@@ -60,6 +62,18 @@ app.use(function(req, res, next){
 	if(!res.locals.partials) res.locals.partials={};
 	res.locals.partials.weather=getWeatherData();
 	next();
+});
+
+app.use('/upload', function(req, res, next){
+	var now=Date.now();
+	jqupload.fileHandler({
+		uploadDir:function(){
+			return __dirname+'public/uploads/'+now;
+		},
+		uploadUrl:function(){
+			return '/uploads'+now;
+		}
+	})(req, res, next);
 });
 
 app.get('/', function(req, res){
@@ -110,6 +124,25 @@ app.post('/process2', function(req, res){
 	}else{
 		res.redirect(303, '/thank-you');
 	}
+});
+
+app.get('/contest/vacation-photo', function(req, res){
+	var now=new Date();
+	res.render('contest/vacation-photo', {
+		year: now.getFullYear(),
+		month: now.getMonth()
+	});
+});
+app.post('/contest/vacation-photo/:year/:month', function(req, res){
+	var form=new formidable.IncomingForm();
+	form.parse(req, function(err, fields, files){
+		if(err) return res.redirect(303, 'error');
+		console.log('received fields:');
+		console.log(fields);
+		console.log('received files:');
+		console.log(files);
+		res.redirect(303, '/think-you');
+	});
 });
 
 //定制404页面
