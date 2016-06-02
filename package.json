@@ -16,10 +16,13 @@
     "body-parser": "^1.15.1",
     "cookie-parser": "^1.4.3",
     "express": "^4.13.4",
+    "express-logger": "0.0.3",
     "express-session": "^1.13.0",
     "express3-handlebars": "^0.5.2",
     "formidable": "^1.0.17",
-    "jquery-file-upload-middleware": "^0.1.7"
+    "jquery-file-upload-middleware": "^0.1.7",
+    "morgan": "^1.7.0",
+    "nodemailer": "^2.4.2"
   },
   "devDependencies": {
     "chai": "^3.5.0",

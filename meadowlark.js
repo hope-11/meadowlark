@@ -1,5 +1,15 @@
 var express=require('express');
 var credentials=require('./credentials.js')
+var nodemailer=require('nodemailer');
+var http=require('http');
+
+var mailTransport=nodemailer.createTransport('SMTP', {
+	service: 'Gmail',
+	auth: {
+		user: credentials.gmail.user,
+		pass: credentials.gmail.password
+	}
+})
 
 var app=express();
 
@@ -85,6 +95,23 @@ app.use(function(req, res, next){
 	next();
 });
 
+switch(app.get('evn')){
+	case 'development':
+		app.use(require('morgan')('dev'));
+		break;
+	case 'production':
+		app.use(require('express-logger')({
+			path: __dirname + '/log/requests.log'
+		}));
+		break;
+}
+
+app.use(function(req, res, next){
+	var cluster=require('cluster');
+	if(cluster.isWorker) console.log('Worker %d received request', cluster.worker.id);
+	next();
+});
+
 app.get('/', function(req, res){
 	res.render('home');
 	req.session.userName='Anonymous';
@@ -116,32 +143,18 @@ app.get('/data/nursery-rhyme', function(req, res){
 		noun: 'heck'
 	});
 });
+app.get('/newsletter/archive', function(req, res){
+	res.render('newsletter/archive');
+})
 app.get('/newsletter', function(req, res){
 	res.render('newsletter', {csrf: 'CSRF token goes here'});
 });
 app.post('/newsletter', function(req, res){
-});
-app.post('/process', function(req, res){
-	console.log('Form (from queyrstring): ' + req.query.form);
-	console.log('CSRF token (from hidden form field): ' + req.body._csrf);
-	console.log('Name (from visible form field): ' + req.body.name);
-	console.log('Email (from visible form field): ' + req.body.email);
-	res.redirect(303, '/thank-you');
-})
-app.get('/newsletter2', function(req, res){
-	res.render('newsletter2', {csrf: 'CSRF token goes here'});
-});
-app.post('/process2', function(req, res){
-//	if(req.xhr || req.accepts('json,html')==='json'){
-//		res.send({success: true});
-//	}else{
-//		res.redirect(303, '/thank-you');
-//	}
 	var name=req.body.name || '';
 	var email=req.body.email || '';
 	console.log(name + '--' + email);
 	if(!email.match(VALID_EMAIL_REGEX)){
-		if(req.xhr) return res.json({error: 'Invalid name email address.'});
+		//if(req.xhr) return res.json({error: 'Invalid name email address.'});
 		req.session.flash={
 			type: 'danger',
 			intro: 'Validation error!',
@@ -167,7 +180,23 @@ app.post('/process2', function(req, res){
 		};
 		return res.redirect(303, '/newsletter/archive');
 	});
-
+});
+app.post('/process', function(req, res){
+	console.log('Form (from queyrstring): ' + req.query.form);
+	console.log('CSRF token (from hidden form field): ' + req.body._csrf);
+	console.log('Name (from visible form field): ' + req.body.name);
+	console.log('Email (from visible form field): ' + req.body.email);
+	res.redirect(303, '/thank-you');
+})
+app.get('/newsletter2', function(req, res){
+	res.render('newsletter2', {csrf: 'CSRF token goes here'});
+});
+app.post('/process2', function(req, res){
+	if(req.xhr || req.accepts('json,html')==='json'){
+		res.send({success: true});
+	}else{
+		res.redirect(303, '/thank-you');
+	}
 });
 
 app.get('/contest/vacation-photo', function(req, res){
@@ -202,9 +231,24 @@ app.use(function(err, req, res, next){
 	res.render('500');
 });
 
-app.listen(app.get('port'), function(){
-	console.log('Express started on http://localhost:'+
-		app.get('port')+
-		'; press Ctrl-C to terminate.');
-});
+//app.listen(app.get('port'), function(){
+//	console.log('Express started on http://localhost:'+
+//		app.get('port')+
+//		'; press Ctrl-C to terminate.');
+//});
+function startServer(){
+	http.createServer(app).listen(app.get('port'), function(){
+		console.log('Express started in ' + app.get('env')
+			+ ' mode on http://localhost: ' + app.get('port')
+			+ '; press Ctrl-C to terminate.');
+	});
+}
 
+if(require.main===module){
+	//应用程序直接运行；启动应用服务器
+	startServer();
+}else{
+	//应用程序作为一个模块通过“require”引入： 导出函数
+	//创建服务器
+	module.exports=startServer();
+}
