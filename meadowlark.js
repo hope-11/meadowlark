@@ -60,6 +60,49 @@ function getWeatherData(){
 
 app.set('port', process.env.PORT || 3000);
 
+app.use(function(req, res, next){
+	//为这个请求创建一个域
+	var domain=require('domain').create();
+	//处理这个域中的错误
+	domain.on('error', function(err){
+		console.log('DOMAIN ERROR CAUGHT\n', err.stack);
+		try{
+			//在5秒内进行故障保护关机
+			setTimeout(function(){
+				console.error('Failsafe shutdown.');
+				process.exit(1);
+			}, 5000);
+			
+			//从集群中断开
+			var worker=require('cluster').worker;
+			if(worker) worker.disconnect();
+			
+			//停止接收新请求
+			server.close();
+			
+			try{
+				//尝试使用Express错误路由
+				next(err);
+			}catch(err){
+				//如果Express错误路由失效，尝试返回普通文本相应
+				console.error('Express error mechanism failed.\n', err.stack);
+				res.statusCode=500;
+				res.setHeader('content-type', 'text/plain');
+				res.end('Server error');
+			}
+		}catch(err){
+			console.log('Unable to send 500 response.\n', err.stack);
+		}
+	});
+	
+	//向域中添加请求和响应对象
+	domain.add(req);
+	domain.add(res);
+	
+	//执行该域中剩余的请求链
+	domain.run(next);
+});
+
 app.use(express.static(__dirname+'/public'));
 
 app.use(function(req, res, next){
@@ -218,6 +261,15 @@ app.post('/contest/vacation-photo/:year/:month', function(req, res){
 	});
 });
 
+app.get('/fail', function(req, res){
+	throw new Error('Nope!');
+});
+app.get('/epic-fail', function(req, res){
+	process.nextTick(function(){
+		throw new Error('Kaboom!');
+	});
+});
+
 //定制404页面
 app.use(function(req, res, next){
 	res.status(404);
@@ -236,6 +288,8 @@ app.use(function(err, req, res, next){
 //		app.get('port')+
 //		'; press Ctrl-C to terminate.');
 //});
+
+/*
 function startServer(){
 	http.createServer(app).listen(app.get('port'), function(){
 		console.log('Express started in ' + app.get('env')
@@ -252,3 +306,8 @@ if(require.main===module){
 	//创建服务器
 	module.exports=startServer();
 }
+*/
+
+var server=http.createServer(app).listen(app.get('port'), function(){
+	console.log('Listening on port %d.', app.get('port'));
+});
