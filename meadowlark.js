@@ -262,6 +262,7 @@ function saveContestEntry(contestName, emai, year, month, photoPath){
 
 app.post('/contest/vacation-photo/:year/:month', function(req, res){
 	var form=new formidable.IncomingForm();
+	form.uploadDir='data/vacation-photo';
 	form.parse(req, function(err, fields, files){
 		if(err) return res.redirect(303, '/error');
 		if(err) {
