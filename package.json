@@ -22,6 +22,7 @@
     "formidable": "^1.0.17",
     "jquery-file-upload-middleware": "^0.1.7",
     "loadtest": "^1.4.0",
+    "mongoose": "^4.4.20",
     "morgan": "^1.7.0",
     "nodemailer": "^2.4.2"
   },

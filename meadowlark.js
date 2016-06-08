@@ -10,9 +10,78 @@ var mailTransport=nodemailer.createTransport('SMTP', {
 		user: credentials.gmail.user,
 		pass: credentials.gmail.password
 	}
-})
+});
 
 var app=express();
+
+var mongoose=require('mongoose');
+var opts={
+	server: {
+		socketOptions: {keepAlive: 1}
+	}
+};
+switch(app.get('env')){
+	case 'development':
+		mongoose.connect(credentials.mongo.development.connectionString, opts);
+		break;
+	case 'production':
+		mongoose.connect(credentials.mongo.production.connectionString, opts);
+		break;
+	default: 
+		throw new Error('Unknow execution environment: ' + app.get('env'));
+}
+
+//初始化Vacation数据
+var Vacation=require('./models/vacation.js');
+Vacation.find(function(err, vacations){
+	if(vacations.length) return;
+	
+	new Vacation({
+		name: 'Hood River Day Trip',
+		slug: 'hood-river-day-trip',
+		category: 'Day Trip',
+		sku: 'HR199',
+		descriptoin: 'Spend a day sailing on the Columbia and enjoying craft beers in Hood River!',
+		priceInCents: 9995,
+		tags: ['day trip', 'hood river', 'sailing', 'windsurfing', 'breweries'],
+		inSeason: true,
+		available: true,
+		maximumGuests: 16,
+		packageSold: 0
+	}).save();
+	
+	new Vacation({
+		name: 'Oregon Coast Getaway',
+		slug: 'oregon-coast-getaway',
+		category: 'Weekend Getaway',
+		sku: 'OC39',
+		descriptoin: 'Enjoy the ocean air and quaint coastal towns!',
+		priceInCents: 269995,
+		tags: ['weekend getaway', 'oregon coast', 'beachcombing'],
+		inSeason: false,
+		available: true,
+		maximumGuests: 8,
+		packageSold: 0
+	}).save();
+	
+	new Vacation({
+		name: 'Rock Climbing in Bend',
+		slug: 'rock-climbing-in-bend',
+		category: 'Adventure',
+		sku: 'B99',
+		descriptoin: 'Experience the thrill of climbing in the high desert.',
+		priceInCents: 289995,
+		tags: ['weekend getaway', 'bend', 'high desert', 'rock climbing'],
+		inSeason: true,
+		available: false,
+		requiresWaiver: true,
+		maximumGuests: 4,
+		notes: 'The tour guide is currently recovering from a skiing accident.',
+		packageSold: 0
+	}).save();
+	
+});
+
 
 var handlebars=require('express3-handlebars').create({
 	defaultLayout:'main',
@@ -299,6 +368,23 @@ app.get('/epic-fail', function(req, res){
 		throw new Error('Kaboom!');
 	});
 });
+
+app.get('/vacations', function(req, res){
+	Vacation.find({available: true}, function(err, vacations){
+		var context={
+			vacations: vacations.map(function(vacation){
+				return {
+					sku: vacation.sku,
+					name: vacation.name,
+					description: vacation.descriptoin,
+					price: vacation.getDisplayPrice(),
+					inSeason: vacation.inSeason
+				}
+			})
+		};
+		res.render('vacations', context);
+	})
+})
 
 //定制404页面
 app.use(function(req, res, next){
