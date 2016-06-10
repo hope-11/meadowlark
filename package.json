@@ -14,7 +14,9 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.1",
+    "connect": "^2.30.2",
     "cookie-parser": "^1.4.3",
+    "cors": "^2.7.1",
     "express": "^4.13.4",
     "express-logger": "0.0.3",
     "express-session": "^1.13.0",
@@ -24,7 +26,9 @@
     "loadtest": "^1.4.0",
     "mongoose": "^4.4.20",
     "morgan": "^1.7.0",
-    "nodemailer": "^2.4.2"
+    "nodemailer": "^2.4.2",
+    "session-mongoose": "^0.5.2",
+    "vhost": "^3.0.2"
   },
   "devDependencies": {
     "chai": "^3.5.0",
@@ -33,6 +37,7 @@
     "grunt-contrib-jshint": "^1.0.0",
     "grunt-exec": "^0.4.7",
     "mocha": "^2.5.3",
+    "restler": "^3.4.0",
     "zombie": "^4.2.1"
   }
 }

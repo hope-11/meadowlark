@@ -3,16 +3,21 @@ var credentials=require('./credentials.js')
 var nodemailer=require('nodemailer');
 var http=require('http');
 var fs=require('fs');
+var vhost=require('vhost');
 
-var mailTransport=nodemailer.createTransport('SMTP', {
-	service: 'Gmail',
-	auth: {
-		user: credentials.gmail.user,
-		pass: credentials.gmail.password
-	}
+var MongoSessionStore=require('session-mongoose')(require('connect'));
+var app=express();
+var admin=express.Router();
+
+app.use(vhost('admin.*', admin));
+admin.get('/', function(req, res){
+	res.render('admin/home');
+});
+admin.get('/users', function(req, res){
+	res.render('admin/users');
 });
 
-var app=express();
+app.use('/api', require('cors')());
 
 var mongoose=require('mongoose');
 var opts={
@@ -30,6 +35,34 @@ switch(app.get('env')){
 	default: 
 		throw new Error('Unknow execution environment: ' + app.get('env'));
 }
+
+var sessionStore=new MongoSessionStore({
+	url: credentials.mongo.connectionString
+});
+app.use(require('cookie-parser')(credentials.cookieSecret));
+app.use(require('express-session')({store: sessionStore}));
+
+app.get('/set-currency/:currency', function(req, res){
+	req.session.currency=req.params.currency;
+	return res.redirect(303, '/vacations');
+});
+function convertFromUSD(value, currency){
+	switch (currency){
+		case 'USD': return value*1;
+		case 'GBP': return value*0.6;
+		case 'BTC': return value*0.0023707918444761;
+		default: return NaN;
+	}
+}
+
+
+var mailTransport=nodemailer.createTransport('SMTP', {
+	service: 'Gmail',
+	auth: {
+		user: credentials.gmail.user,
+		pass: credentials.gmail.password
+	}
+});
 
 //初始化Vacation数据
 var Vacation=require('./models/vacation.js');
@@ -371,20 +404,65 @@ app.get('/epic-fail', function(req, res){
 
 app.get('/vacations', function(req, res){
 	Vacation.find({available: true}, function(err, vacations){
+		var currency=req.session.currency || 'USD';
 		var context={
+			currency: currency,
 			vacations: vacations.map(function(vacation){
 				return {
 					sku: vacation.sku,
 					name: vacation.name,
 					description: vacation.descriptoin,
-					price: vacation.getDisplayPrice(),
+					price: convertFromUSD(vacation.priceInCents/100, currency),
+					qty: vacation.qty,
 					inSeason: vacation.inSeason
 				}
 			})
 		};
+		switch (currency){
+			case 'USD':
+				context.currencyUSD='selected';
+				break;
+			case 'GBP':
+				context.currencyGBP='selected';
+				break;
+			case 'BTC':
+				context.currencyBTC='selected';
+				break;
+		}
 		res.render('vacations', context);
 	})
 })
+
+var VacationInSeasonListener=require('./models/vacationInSeasonListener.js');
+
+app.get('/notify-me-when-in-season', function(req, res){
+	res.render('notify-me-when-in-season', {sku: req.query.sku});
+});
+
+app.post('/notify-me-when-in-season', function(req, res){
+	VacationInSeasonListener.update(
+		{email: req.body.email},
+		{$push: {skus: req.body.sku}},
+		{upsert: true},
+		function(err){
+			if(err){
+				console.error(err.stack);
+				req.session.flash={
+					type: 'danger',
+					intro: 'Ooops!',
+					message: 'There was an error processing your request.'
+				};
+				return res.redirect(303, '/vacations');
+			}
+			req.session.flash={
+				type: 'success',
+				intro: 'Thank you!',
+				message: 'You will be notified when the vacation is in season.'
+			};
+			return res.redirect(303, 'vacations');
+		}
+	);
+});
 
 //定制404页面
 app.use(function(req, res, next){
